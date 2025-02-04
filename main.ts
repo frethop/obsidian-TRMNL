@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownPostProcessorContext, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -13,6 +13,26 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
+	TRMNLapikey = "pAjeQD56QR-bqu8pV8moyQ";
+
+	codeblockProcessor(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+		fetch("https://usetrmnl.com/api/display", {
+			//mode: "no-cors",
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8",
+				"access-token": this.TRMNLapikey
+			}
+		})
+			.then((response) => response.json())
+			.then((json) => {
+				let html = source+"<center><img src='" + json.image_url + "' /></center>";
+				html += "<br><center><a href='https://usetrmnl.com' target='_blank'>Powered by TRMNL</a></center>";
+				el.innerHTML = html;
+			}); 
+	}
+	
+
 	async onload() {
 		await this.loadSettings();
 
@@ -23,10 +43,6 @@ export default class MyPlugin extends Plugin {
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -72,12 +88,37 @@ export default class MyPlugin extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
 			console.log('click', evt);
+			this.codeblockProcessor("```trmnl\nls\n```", document.createElement("div"), undefined);
 		});
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
 
+		this.registerMarkdownCodeBlockProcessor("trmnl", this.codeblockProcessor.bind(this));
+	
+
+		// And now...
+		// fetch("https://usetrmnl.com/api/display", {
+		// 	//mode: "no-cors",
+		// 	method: "GET",
+		// 	headers: {
+		// 		"Content-type": "application/json; charset=UTF-8",
+		// 		"access-token": this.TRMNLapikey
+		// 	}
+		// })
+		// 	.then((response) => response.json())
+		// 	.then((json) => {
+		// 		console.log(json.image_url);
+		// 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		// 		if (activeView && activeView.containerEl.children[1]) {
+		// 			let container = activeView.containerEl;
+		// 			container.children[1].innerHTML = "<center><img src='" + json.image_url + "' /></center>";
+		// 		}
+			
+		// 	}); 
+		
+	}
+	
 	onunload() {
 
 	}
